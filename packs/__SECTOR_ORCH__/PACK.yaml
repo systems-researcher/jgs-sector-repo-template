@@ -1,0 +1,11 @@
+slug: __SECTOR_ORCH__
+kind: orchestrator
+title: "__SECTOR_NAME__ Orchestrator: routes questions to the right knowledge packs"
+publisher: JG Systems Consulting Ltd
+license: MIT (tooling; orchestrator carries no source content)
+license_tier: 1
+commercial_use: true
+notes: >
+  Orchestrator, NOT a knowledge pack. Runs only on explicit /__SECTOR_ORCH__ <question>.
+  Contains zero third-party source content: a hand-curated routing map over this
+  catalogue's own public packs plus original guidance text.
