@@ -197,7 +197,7 @@ footer .label{{display:block;margin-bottom:8px}}
   is an Agent Skill you invoke by its slug. Type to filter by name, publisher, licence, or topic.
   Click a slug to open its <code>SKILL.md</code> on GitHub.</p>
   <div class="tools">
-    <input id="q" type="search" placeholder="filter, e.g. nasa, risk, public domain, CC BY" aria-label="Filter packs">
+    <input id="q" type="search" placeholder="filter, e.g. risk, public domain, CC BY" aria-label="Filter packs">
     <span id="count"></span>
   </div>
   <div class="nav"><a href="index.html">&larr; Back to the overview</a></div>
