@@ -119,20 +119,20 @@ def render(rows: list[dict], ver: str) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Pack reference, JGS SE Knowledge Packs ({n_content} skills)</title>
-<meta name="description" content="Browse and filter all {n_content} JGS SE Knowledge Pack skills by slug, source licence, and coverage: NASA, NIST, DoD, GAO, FAA, and SEBoK packs for coding agents.">
+<title>Pack reference, __SECTOR_NAME__ Knowledge Packs ({n_content} skills)</title>
+<meta name="description" content="Browse and filter all {n_content} __SECTOR_NAME__ knowledge-pack skills by slug, source licence, and coverage for coding agents.">
 <link rel="canonical" href="{PAGES}/packs.html">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0b'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='22' font-weight='700' text-anchor='middle' fill='%23f4f2ec'%3E%C2%A7%3C/text%3E%3C/svg%3E">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Pack reference, JGS SE Knowledge Packs">
-<meta property="og:description" content="Browse and filter all {n_content} systems-engineering knowledge-pack skills by slug, source licence, and coverage.">
+<meta property="og:title" content="Pack reference, __SECTOR_NAME__ Knowledge Packs">
+<meta property="og:description" content="Browse and filter all {n_content} __SECTOR_NAME__ knowledge-pack skills by slug, source licence, and coverage.">
 <meta property="og:url" content="{PAGES}/packs.html">
 <meta property="og:image" content="{PAGES}/assets/og-default.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pack reference, JGS SE Knowledge Packs">
-<meta name="twitter:description" content="Browse and filter all {n_content} systems-engineering knowledge-pack skills.">
+<meta name="twitter:title" content="Pack reference, __SECTOR_NAME__ Knowledge Packs">
+<meta name="twitter:description" content="Browse and filter all {n_content} __SECTOR_NAME__ knowledge-pack skills.">
 <meta name="twitter:image" content="{PAGES}/assets/og-default.png">
 <style>
 __BRAND_TOKENS__
@@ -186,7 +186,7 @@ footer .label{{display:block;margin-bottom:8px}}
 <div class="mast"><div class="wrap">
   <span class="label">CLASSIFICATION: <span>PUBLIC</span></span>
   <span class="label">LICENCE: <span>MIT (TOOLING)</span></span>
-  <span class="label">DOC-ID: <span>JGS-SE-KP/REF</span></span>
+  <span class="label">DOC-ID: <span>JGS-KP/REF</span></span>
   <span class="label">REV: <span>{ver}</span></span>
 </div></div>
 

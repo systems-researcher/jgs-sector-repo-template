@@ -1,0 +1,85 @@
+<!--
+Copyright (c) 2026 JG Systems Consulting Ltd. MIT License (see ../LICENSE).
+SPDX-License-Identifier: MIT
+-->
+
+# Using the knowledge packs
+
+## Prerequisites
+
+- A host that reads [Agent Skills](https://github.com/agentskills/agentskills): Claude Code,
+  GitHub Copilot CLI, or Amp.
+- Packs installed into your skills directory (see the repo README: `python install.py`).
+- No MCP server, API key, or licence tier is needed at runtime; packs are plain Markdown.
+
+## Invoking a pack
+
+Each pack is a skill named by its slug. After installing and restarting your agent:
+
+```bash
+/<slug>                      # no argument: load the pack's core frameworks for reference
+/<slug> <topic>              # a topic: the pack routes to the right chapter and answers
+/<slug> ch20                 # a chapter id: load that chapter directly
+/<slug> what chapters do you have?   # browse the index
+```
+
+In normal conversation you often don't need the slash at all: each pack's `description`
+makes the agent load it when your question matches its topics (for example, "what does
+this body of knowledge say about traceability?").
+
+## How a pack answers
+
+A pack uses progressive disclosure so a large source doesn't fill your context window:
+
+- `SKILL.md` (always loaded) holds the core frameworks plus a **topic index** and **chapter
+  index**.
+- `chapters/chNN-*.md` are loaded **on demand**, only the chapter your question routes to.
+- `glossary.md`, `patterns.md`, `cheatsheet.md` are loaded when relevant.
+
+So the agent reads `SKILL.md`, decides which one chapter answers your question, and loads
+just that.
+
+## The /__SECTOR_ORCH__ orchestrator
+
+`__SECTOR_ORCH__` is not a knowledge pack: it carries no source content. On an explicit
+`/__SECTOR_ORCH__ <question>` it matches your question to installed packs through a curated
+routing map (topics, agency contexts, deliverables), reads them, and answers with pack and
+chapter citations. Use it when you do not know which `/<slug>` to ask. Bare
+`/__SECTOR_ORCH__` prints usage and examples.
+
+Modes and gates:
+
+- **Narrow consult** (one topic row matches, at most one agency): reads the best single
+  pack, no gate, ends with "Also relevant" runners-up.
+- **Broad consult** (two or more rows or agencies, or a compare/contrast/survey verb): one
+  plan approval naming the packs, then it runs to done; disagreements are listed per source,
+  never averaged.
+- **Deliverable** (an artifact verb plus a deliverable name): plan approval, then stage
+  pauses after Draft and after Review. Draft builds the artifact with citations; Review
+  lists cited findings and a revised artifact; Verify is a results table only (no edits).
+  A review/verify request on a user artifact starts at that stage. No matching row: name
+  closest Deliverables rows or offer a broad consult; never improvise a chain.
+
+Every claim cites a file read that session, as `[slug chNN]`, `[slug index]`, or
+`[slug glossary|patterns|cheatsheet]`, and every answer ends with a **Sources** block
+listing each pack's source and licence (Licences table, else `Public Domain (US Government work)`;
+signposts as `MIT (signpost)`; NC/SA terms in full). Host modes: with sub-agents it reads
+packs in parallel (failed brief reruns in the main thread); otherwise in sequence; on
+transform installs it reads the inlined index files, names chapters as follow-ups, and
+labels the answer `index-level`; when no member file is readable it reports the route only
+and makes no __SECTOR_NAME__ claims. Agency filter keeps candidates on named agency rows when one
+survives, else keeps all and says so. Thin packs step down to the next on the row.
+
+## Scope & honesty
+
+Each pack's `SKILL.md` states what its source is **thin** on. Knowledge packs are reference
+oracles over one source. Best for "what does this body of knowledge say about X?" and
+"give me X's framework for Y." They are not a substitute for your own judgement, and they
+only know their one source.
+
+## Licensing reminder
+
+Pack **content** is licensed under its source's own terms (see each `packs/<slug>/LICENSE`
+and the root `NOTICE`). Non-commercial (NC) packs may not be used for commercial purposes;
+share-alike (SA) packs must keep their licence on any derivative. The repository **tooling**
+is MIT. See [LICENSING.md](LICENSING.md).

@@ -1,0 +1,273 @@
+<!doctype html>
+<!--
+  Copyright (c) 2026 JG Systems Consulting Ltd. MIT License (see ../LICENSE).
+  SPDX-License-Identifier: MIT
+  RR-B-20 / RR-B-24 product landing page. Self-contained (inline CSS, no third-party
+  asset/CDN/tracking; enforced by [html-assets] in tooling/check_release.py).
+  JGS brand & design system: dark drafting-document aesthetic.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>__SECTOR_NAME__ Knowledge Packs: open knowledge-pack skills for coding agents</title>
+<meta name="description" content="Licence-vetted knowledge-pack skills for coding agents in the __SECTOR_NAME__ domain, reconstructed from genuinely open sources. Open Agent Skills format; installs into Claude Code, Copilot CLI, Codex, Gemini, Cursor.">
+<link rel="canonical" href="https://jgsystemsconsulting.github.io/__REPO_NAME__/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0b'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='22' font-weight='700' text-anchor='middle' fill='%23f4f2ec'%3E%C2%A7%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="__SECTOR_NAME__ Knowledge Packs">
+<meta property="og:description" content="Licence-vetted __SECTOR_NAME__ knowledge-pack skills for coding agents, reconstructed from genuinely open sources.">
+<meta property="og:url" content="https://jgsystemsconsulting.github.io/__REPO_NAME__/">
+<meta property="og:image" content="https://jgsystemsconsulting.github.io/__REPO_NAME__/assets/og-default.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="__SECTOR_NAME__ Knowledge Packs">
+<meta name="twitter:description" content="Licence-vetted __SECTOR_NAME__ knowledge-pack skills for coding agents, reconstructed from genuinely open sources.">
+<meta name="twitter:image" content="https://jgsystemsconsulting.github.io/__REPO_NAME__/assets/og-default.png">
+<style>
+/* Self-hosted brand fonts (drop the woff2 into docs/fonts/ before publish; falls back to
+   system mono/sans meanwhile per the token stacks). No third-party CDN. */
+/* BRAND-TOKENS:BEGIN (single source; tooling/gen_packs_page.py copies this verbatim) */
+@font-face{font-family:'JetBrains Mono';src:url('fonts/JetBrainsMono-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('fonts/JetBrainsMono-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'Inter';src:url('fonts/Inter-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Inter';src:url('fonts/Inter-SemiBold.woff2') format('woff2');font-weight:600;font-display:swap}
+
+:root{
+  --ink:#0a0a0b; --ink-2:#111113; --ink-3:#16171a;
+  --line:#2a2d33; --line-2:#3a3e46;
+  --mute:#6b7078; --mute-2:#8b9099;
+  --text:#c7ccd3; --text-hi:#e8ebf0;
+  --paper:#f4f2ec; --paper-ink:#0a0a0b;
+  --mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+  --sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+  --pad-x:clamp(24px,4vw,80px); --pad-section:clamp(48px,6vw,96px);
+}
+/* BRAND-TOKENS:END */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ink);color:var(--mute-2);font-family:var(--sans);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto;padding-left:var(--pad-x);padding-right:var(--pad-x)}
+a{color:var(--text-hi);text-decoration:none;border-bottom:1px solid var(--line-2)}
+a:hover{border-bottom-color:var(--paper)}
+a:focus-visible,button:focus-visible,.btn:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
+h1,h2,h3{font-family:var(--mono);color:var(--text-hi);letter-spacing:-0.02em;font-weight:700;margin:0}
+.label{font-family:var(--mono);text-transform:uppercase;letter-spacing:0.14em;font-size:0.6875rem;font-weight:700;color:var(--mute)}
+
+/* Masthead */
+.mast{border-bottom:1px solid var(--line);background:var(--ink-2)}
+.mast .wrap{display:flex;flex-wrap:wrap;gap:10px 28px;padding-top:12px;padding-bottom:12px}
+.mast .label span{color:var(--text)}
+
+/* Site nav */
+nav.site{border-bottom:1px solid var(--line)}
+nav.site .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;padding-top:12px;padding-bottom:12px}
+nav.site a{font-family:var(--mono);font-weight:700;font-size:0.6875rem;letter-spacing:0.12em;text-transform:uppercase;border:0;color:var(--mute-2)}
+nav.site a:hover{color:var(--text-hi);border:0}
+
+/* Hero */
+.hero{border-bottom:1px solid var(--line);padding-top:var(--pad-section);padding-bottom:var(--pad-section)}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.05;color:var(--text-hi)}
+.hero p.lede{margin:1.4rem 0 0;max-width:60ch;font-size:1.05rem;color:var(--text)}
+.cta{margin-top:2.2rem;display:flex;flex-wrap:wrap;gap:14px}
+.btn{font-family:var(--mono);font-weight:700;letter-spacing:0.06em;font-size:0.8125rem;text-transform:uppercase;padding:14px 20px;border:1px solid var(--line);background:transparent;color:var(--text-hi);cursor:pointer;display:inline-flex;gap:10px;align-items:center}
+.btn.primary{background:var(--paper);color:var(--paper-ink);border-color:var(--paper)}
+.btn:hover{border-bottom-color:var(--line)}
+.btn.primary:hover{background:#fff}
+
+/* Sections */
+section{padding-top:var(--pad-section);padding-bottom:var(--pad-section);border-bottom:1px solid var(--line)}
+.sec-head{margin-bottom:2rem}
+.sec-head .label{display:block;margin-bottom:0.6rem}
+.sec-head h2{font-size:clamp(1.4rem,3vw,2rem)}
+
+/* Grid-of-cells */
+.cells{display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.cells.c3{grid-template-columns:repeat(3,1fr)}
+.cells.c2{grid-template-columns:repeat(2,1fr)}
+.cell{background:var(--ink-2);padding:24px}
+.cell h3{font-size:1rem;margin-bottom:8px}
+.cell p{margin:0;font-size:0.9375rem}
+.num{font-family:var(--mono);font-weight:700;font-size:3rem;color:var(--line-2);line-height:1;display:block;margin-bottom:10px}
+
+/* Code block */
+pre{font-family:var(--mono);font-size:0.85rem;color:var(--text);background:var(--ink-2);border:1px solid var(--line);padding:18px 20px;overflow:auto;margin:0}
+code{font-family:var(--mono)}
+.muted{color:var(--mute-2)}
+
+/* Pack list */
+.packs{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);grid-template-columns:repeat(2,1fr)}
+.pk{background:var(--ink-2);padding:14px 18px}
+.pk b{font-family:var(--mono);color:var(--text-hi);font-weight:700;font-size:0.875rem}
+.pk span{display:block;font-size:0.85rem;color:var(--mute-2);margin-top:2px}
+
+/* Drafting-sheet footer */
+.sheet{background:var(--ink-2);border:1px solid var(--line);background-image:linear-gradient(var(--ink-3) 1px,transparent 1px),linear-gradient(90deg,var(--ink-3) 1px,transparent 1px);background-size:40px 40px;padding:28px;margin-top:var(--pad-section);position:relative}
+.sheet .tb{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;border-top:1px solid var(--line);margin-top:20px;padding-top:14px}
+footer{padding-top:32px;padding-bottom:48px;color:var(--mute)}
+footer .label{display:block;margin-bottom:8px}
+
+@media (max-width:860px){
+  .cells.c3,.cells.c2,.packs{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- §00 Masthead -->
+<!-- Masthead and footer chrome stay hand-mirrored in tooling/gen_packs_page.py; only the BRAND-TOKENS block auto-syncs. -->
+<div class="mast"><div class="wrap">
+  <span class="label">CLASSIFICATION: <span>PUBLIC</span></span>
+  <span class="label">LICENCE: <span>MIT (TOOLING)</span></span>
+  <span class="label">DOC-ID: <span>JGS-KP</span></span>
+  <span class="label">REV: <span>0.1.0</span></span>
+</div></div>
+<nav class="site" aria-label="Primary"><div class="wrap">
+  <a href="#what-it-is">What it is</a>
+  <a href="#why-it-pays-off">Why it pays off</a>
+  <a href="#using-a-pack">Using a pack</a>
+  <a href="#install">Install</a>
+  <a href="#agents">Agents</a>
+  <a href="#catalogue">Catalogue</a>
+  <a href="#licensing">Licensing</a>
+</div></nav>
+
+<!-- Hero -->
+<header class="hero"><div class="wrap">
+  <span class="label">JG Systems Consulting Ltd. · Agent Skills</span>
+  <h1>__SECTOR_NAME__ Knowledge Packs</h1>
+  <p class="lede">Installable knowledge-pack skills for coding agents in the
+  __SECTOR_NAME__ domain, reconstructed from genuinely open sources, vetted,
+  attributed, and shareable by construction. Ask a topic; your agent reads the
+  right chapter and answers from reference notes, not a hazy recollection.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/jgsystemsconsulting/__REPO_NAME__">View the repository <span aria-hidden="true">&rarr;</span></a>
+    <a class="btn" href="packs.html">Browse the catalogue <span aria-hidden="true">&rarr;</span></a>
+  </div>
+</div></header>
+
+<!-- §01 What it is -->
+<section id="what-it-is"><div class="wrap">
+  <div class="sec-head"><span class="label">§01 · What it is</span>
+    <h2>One rule: only genuinely open sources</h2></div>
+  <div class="cells c3">
+    <div class="cell"><h3>Licence-vetted by construction</h3><p>Every source clears a written eligibility rubric: Tier 1 public-domain or Tier 2/3 open-licensed with per-document capture where required. The Excluded list is a hard stop. Each pack carries its source's licence and attribution.</p></div>
+    <div class="cell"><h3>Progressive disclosure</h3><p>Each pack is an always-loaded <code>SKILL.md</code> index plus on-demand chapters, glossary, patterns, and a cheatsheet, so a large body of knowledge never fills the context window.</p></div>
+    <div class="cell"><h3>No runtime dependencies</h3><p>Plain Markdown. No MCP server, API key, or licence tier needed at runtime. Clone, install, invoke.</p></div>
+  </div>
+</div></section>
+
+<!-- §02 Why it pays off -->
+<section id="why-it-pays-off"><div class="wrap">
+  <div class="sec-head"><span class="label">§02 · Why it pays off</span>
+    <h2>The standard answers, in the agent, when you need them</h2></div>
+  <div class="cells c2">
+    <div class="cell"><h3>For the engineer</h3><p>Stop breaking flow to dig through a long handbook. Ask a pack by slug mid-task and get the framework (with the chapter it came from) instead of a plausible-sounding guess. The agent answers from reconstructed reference notes, so you can cite the source, not a hallucination.</p></div>
+    <div class="cell"><h3>For the firm</h3><p>Put the same vetted bodies of knowledge in front of every engineer and every agent, junior or senior, on every project. Reviews, requirements, risk, and safety work trace back to open canon by default, not to whoever happened to remember it. Consistency you can audit, with no per-seat licence and no PDFs to chase.</p></div>
+  </div>
+  <div class="cells c3" style="margin-top:1px">
+    <div class="cell"><h3>Grounded, not guessed</h3><p>Answers route to a specific chapter and name their source. The agent reads the text instead of recalling it, so you get fewer confident wrong answers in domains where that costs you.</p></div>
+    <div class="cell"><h3>Shareable by construction</h3><p>Only genuinely open sources go in, each carrying its own licence. Hand a pack to a teammate, a subcontractor, or a client without a legal review.</p></div>
+    <div class="cell"><h3>Zero lock-in</h3><p>Plain Markdown skills on the open Agent Skills format. No server, no API key, no subscription. They work the same offline as online.</p></div>
+  </div>
+</div></section>
+
+<!-- §03 Using a pack -->
+<section id="using-a-pack"><div class="wrap">
+  <div class="sec-head"><span class="label">§03 · Using a pack</span>
+    <h2>Ask a topic; the agent reads the right chapter</h2></div>
+  <pre><code><span class="muted"># slash-invoke a pack by its slug</span>
+/&lt;slug&gt;                       <span class="muted"># load the pack's core frameworks for reference</span>
+/&lt;slug&gt; &lt;topic&gt;               <span class="muted"># a topic: routes to the right chapter and answers</span>
+/&lt;slug&gt; ch06                  <span class="muted"># a chapter id: load that chapter directly</span>
+/&lt;slug&gt; what chapters do you have?   <span class="muted"># browse the index</span>
+
+<span class="muted"># or just ask: each pack's description makes the agent load it on a match</span>
+"What does this body of knowledge say about verification?"</code></pre>
+  <h3 style="margin:2.4rem 0 0.6rem;font-size:1rem">Not sure which pack? Ask /__SECTOR_ORCH__</h3>
+  <p style="margin:0;max-width:62ch;color:var(--text)">The <code>/__SECTOR_ORCH__</code> orchestrator routes a free-text
+  __SECTOR_NAME__ question to the right pack or packs, reads them, and answers with pack and chapter
+  citations. It carries no source content and answers only when explicitly invoked, so it pairs with every
+  pack in the catalogue.</p>
+  <pre style="margin-top:1.2rem"><code>/__SECTOR_ORCH__ what does this pack say about risk acceptance?   <span class="muted"># narrow: routes one pack</span>
+/__SECTOR_ORCH__ compare how two sources guide verification planning  <span class="muted"># broad: proposes a plan first</span>
+/__SECTOR_ORCH__ draft the risk section of a plan                     <span class="muted"># deliverable: pauses at each stage</span></code></pre>
+  <p style="margin:1.2rem 0 0;max-width:62ch;color:var(--text)">Each pack uses <strong>progressive disclosure</strong>: an always-loaded <code>SKILL.md</code> index decides which single chapter answers your question and loads only that, so a large source never fills the context window. Full detail in <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/docs/skill-usage.md">docs/skill-usage.md</a>.</p>
+</div></section>
+
+<!-- §04 Install -->
+<section id="install"><div class="wrap">
+  <div class="sec-head"><span class="label">§04 · Install</span>
+    <h2>Clone, install, invoke</h2></div>
+  <pre><code>git clone https://github.com/jgsystemsconsulting/__REPO_NAME__.git
+cd __REPO_NAME__
+python install.py --dry-run     <span class="muted"># preview packs + target</span>
+python install.py               <span class="muted"># install for Claude Code</span>
+
+<span class="muted"># other agents: native or format-transformed</span>
+python install.py --list-agents
+python install.py --agent all   <span class="muted"># claude · openclaw · copilot · codex · gemini</span></code></pre>
+</div></section>
+
+<!-- §05 Supported agents -->
+<section id="agents"><div class="wrap">
+  <div class="sec-head"><span class="label">§05 · Supported agents</span>
+    <h2>Open Agent Skills, many hosts</h2></div>
+  <div class="cells c3">
+    <div class="cell"><span class="num">3</span><h3>Native</h3><p>Claude Code, OpenClaw, and GitHub Copilot CLI read the <code>SKILL.md</code> format directly: the whole pack is copied, with full progressive disclosure.</p></div>
+    <div class="cell"><span class="num">3</span><h3>Transform</h3><p>Codex (prompt), Gemini (TOML command), and Cursor (project rule) receive the always-loaded index inlined into one file by the installer.</p></div>
+    <div class="cell"><span class="num">1</span><h3>Installer</h3><p>One stdlib-only <code>install.py</code> with <code>--agent</code> / <code>--list-agents</code> drives them all. Defaults to Claude Code.</p></div>
+  </div>
+</div></section>
+
+<!-- §06 The catalogue -->
+<section id="catalogue"><div class="wrap">
+  <div class="sec-head"><span class="label">§06 · The catalogue</span>
+    <h2>0 packs &middot; 0 signposts</h2></div>
+  <div class="packs">
+    <div class="pk"><b>Content &middot; 0</b><span>No content packs shipped yet. Sector builds add packs under packs/&lt;slug&gt;/.</span></div>
+    <div class="pk"><b>Signposts &middot; 0</b><span>No signpost packs shipped yet (not content packs).</span></div>
+  </div>
+  <p style="margin:1.4rem 0 0;color:var(--text)">That is <strong>1 skill in all</strong>: 0 knowledge
+  packs, 0 signposts, and the <code>/__SECTOR_ORCH__</code> orchestrator. Browse and filter the full catalogue on the
+  <a href="packs.html">pack reference page</a>, or read the raw index in
+  <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/SKILLS.md">SKILLS.md</a>.</p>
+</div></section>
+
+<!-- §07 Licensing -->
+<section id="licensing"><div class="wrap">
+  <div class="sec-head"><span class="label">§07 · Licensing</span>
+    <h2>Two separable layers</h2></div>
+  <div class="cells c2">
+    <div class="cell"><h3>Tooling &amp; scaffolding</h3><p><a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/LICENSE">MIT</a>, by JG Systems Consulting Ltd. The installer, validator, docs, and repo structure.</p></div>
+    <div class="cell"><h3>Pack content</h3><p>Each pack carries its <em>source's</em> licence in <code>packs/&lt;slug&gt;/LICENSE</code>, independent of the repo MIT licence. A CC BY-NC-SA source yields a CC BY-NC-SA pack.</p></div>
+  </div>
+
+  <div class="sheet">
+    <span class="label">Drafting sheet · provenance</span>
+    <p style="margin:.8rem 0 0;max-width:60ch;color:var(--text)">Every pack is reconstructed as synthesized reference notes, never a verbatim reproduction, with per-pack source attribution in <code>NOTICE</code>. No source-material download links are published; attribution travels as text plus the licence deed.</p>
+    <div class="tb">
+      <span class="label">PRODUCT: <span style="color:var(--text)">__REPO_NAME__</span></span>
+      <span class="label">REV: <span style="color:var(--text)">0.1.0</span></span>
+      <span class="label">VENDOR: <span style="color:var(--text)">JG Systems Consulting Ltd.</span></span>
+    </div>
+  </div>
+</div></section>
+
+<!-- Footer -->
+<footer><div class="wrap">
+  <span class="label">JG Systems Consulting Ltd. · 2026</span>
+  <p style="margin:0;font-size:0.9rem">
+    <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__">Repository</a> ·
+    <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/CHANGELOG.md">Changelog</a> ·
+    <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/SECURITY.md">Security</a> ·
+    <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/SKILLS.md">Catalogue</a> ·
+    <a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/docs/LICENSING.md">Licensing</a>
+  </p>
+</div></footer>
+
+</body>
+</html>
