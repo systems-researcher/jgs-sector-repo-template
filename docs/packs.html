@@ -112,7 +112,7 @@ footer .label{display:block;margin-bottom:8px}
   <table>
     <thead><tr><th>Pack</th><th>Source licence</th><th>What it covers</th></tr></thead>
     <tbody id="rows">
-<tr data-text="__sector_orch__ mit (tooling; orchestrator carries no source content) orchestrator, not a pack: type /__sector_orch__ &lt;question&gt; and it routes your __sector_name__ question through a curated topic, agency, and deliverable map to the right pack(s), reads them, and answers with pack and chapter citations. explicit invocation only; zero source content."><td class="slug"><a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/packs/__SECTOR_ORCH__/SKILL.md">__SECTOR_ORCH__</a></td><td class="lic">MIT (tooling; orchestrator carries no source content)</td><td class="desc"><strong>Orchestrator, not a pack</strong>: type <code>/__SECTOR_ORCH__ &lt;question&gt;</code> and it routes your __SECTOR_NAME__ question through a curated topic, agency, and deliverable map to the right pack(s), reads them, and answers with pack and chapter citations. Explicit invocation only; zero source content.</td></tr>
+<tr data-text="__SECTOR_ORCH__ MIT (tooling; orchestrator carries no source content) Orchestrator, not a pack: type /__SECTOR_ORCH__ &lt;question&gt; and it routes your __SECTOR_NAME__ question through a curated topic, agency, and deliverable map to the right pack(s), reads them, and answers with pack and chapter citations. Explicit invocation only; zero source content."><td class="slug"><a href="https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/packs/__SECTOR_ORCH__/SKILL.md">__SECTOR_ORCH__</a></td><td class="lic">MIT (tooling; orchestrator carries no source content)</td><td class="desc"><strong>Orchestrator, not a pack</strong>: type <code>/__SECTOR_ORCH__ &lt;question&gt;</code> and it routes your __SECTOR_NAME__ question through a curated topic, agency, and deliverable map to the right pack(s), reads them, and answers with pack and chapter citations. Explicit invocation only; zero source content.</td></tr>
     </tbody>
   </table>
   <div id="empty">No packs match that filter.</div>
@@ -135,7 +135,7 @@ footer .label{display:block;margin-bottom:8px}
   function upd(){
     var t=q.value.trim().toLowerCase(),shown=0;
     rows.forEach(function(r){
-      var hit=!t||r.getAttribute('data-text').indexOf(t)>-1;
+      var hit=!t||(r.getAttribute('data-text')||'').toLowerCase().indexOf(t)>-1;
       r.classList.toggle('hidden',!hit); if(hit)shown++;
     });
     count.textContent=shown+' / '+total+' shown';

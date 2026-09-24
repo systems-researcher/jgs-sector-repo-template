@@ -97,8 +97,9 @@ def render(rows: list[dict], ver: str) -> str:
         desc = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", desc)
         desc = re.sub(r"`([^`]+)`", r"<code>\1</code>", desc)
         href = f"{REPO}/blob/main/{r['path']}"
-        # data-text powers the client-side filter (slug + licence + description, lowercased)
-        data = html.escape(f"{r['slug']} {r['licence']} {plain}".lower(), quote=True)
+        # data-text keeps source case so identity tokens survive mint substitution;
+        # the filter JS lowercases both sides at query time.
+        data = html.escape(f"{r['slug']} {r['licence']} {plain}", quote=True)
         cells.append(
             f'<tr data-text="{data}">'
             f'<td class="slug"><a href="{href}">{slug}</a></td>'
@@ -230,7 +231,7 @@ footer .label{{display:block;margin-bottom:8px}}
   function upd(){{
     var t=q.value.trim().toLowerCase(),shown=0;
     rows.forEach(function(r){{
-      var hit=!t||r.getAttribute('data-text').indexOf(t)>-1;
+      var hit=!t||(r.getAttribute('data-text')||'').toLowerCase().indexOf(t)>-1;
       r.classList.toggle('hidden',!hit); if(hit)shown++;
     }});
     count.textContent=shown+' / '+total+' shown';
