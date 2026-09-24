@@ -1,7 +1,7 @@
 <!--
 Copyright (c) 2026 JG Systems Consulting Ltd. — MIT License (see LICENSE).
 SPDX-License-Identifier: MIT
-Generated from each pack's SKILL.md frontmatter. Regenerate with tooling/gen_skills_index.py.
+Generated from the pack frontmatter (each pack's SKILL.md YAML header).
 -->
 
 # __REPO_NAME__ — Pack Index

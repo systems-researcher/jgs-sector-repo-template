@@ -26,4 +26,4 @@ NOTE: This MIT licence covers the REPOSITORY TOOLING AND SCAFFOLDING ONLY
 (scripts in tooling/, docs/, CI, and repo structure). The CONTENT of each
 knowledge pack under packs/<slug>/ is licensed SEPARATELY under the licence of
 its upstream open source; see packs/<slug>/LICENSE and packs/<slug>/PACK.yaml.
-For example, the `sebok` pack content is CC BY-NC-SA 3.0, not MIT.
+For example, the `<first-pack>` pack content may be CC BY-NC-SA 3.0, not MIT.

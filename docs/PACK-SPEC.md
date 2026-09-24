@@ -31,7 +31,7 @@ packs/<slug>/
   the pack covers **and its scope limits** (be honest about what the source is thin on).
 - Body order: most important first (hosts truncate from the end on compaction).
   - `## When to use` (immediately followed by a `**Prerequisites:**` line naming what
-    the reader should already have/know - RR-S-13; enforced by tooling/check_release.py)
+    the reader should already have/know; enforced by tooling/check_release.py)
   - `## How to Use This Skill`
   - `## Core Frameworks & Mental Models` (~2,000 tokens: the toolkit, not a summary)
   - `## Chapter Index` (table linking every `chapters/chNN-*.md`)
@@ -63,8 +63,8 @@ share_alike: true                  # true if SA: pack content inherits the licen
 attribution_required: true
 build:
   method: "[extraction + generation method used]"
-  source_pages: 1465
-  chapters: 41
+  source_pages: <NNN>
+  chapters: <NNN>
   built_on: "[YYYY-MM-DD]"
 notes: >
   Example: a CC BY-NC-SA source yields a pack released under the same licence as the
