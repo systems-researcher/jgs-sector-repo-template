@@ -1,0 +1,1247 @@
+# Copyright (c) 2026 JG Systems Consulting Ltd. — MIT License (see ../../LICENSE).
+# SPDX-License-Identifier: MIT
+#
+# RR-S-12 CI quality gate. Self-contained (inline bash + python3 stdlib only); never
+# executes checked-out repository code. Runs on push to main and on every PR.
+# Leak sentinels, link policy with signpost exemption, frontmatter lint, catalog
+# validity, version single-source, SKILLS index count, chapter basename overlap,
+# and map/classification data invariants. Link policy enforces from a trusted
+# inline host set and asserts set-parity against tooling/link-policy-hosts.txt
+# (the data file the local gate tooling/check_release.py loads) before scanning;
+# any divergence fails the build. Both leak and link gates skip .planning
+# identically (internal GSD workflow state; never ships).
+#
+# Coverage map vs the local gate (run `python tooling/check_release.py` before
+# tagging; CI green is not release-ready):
+#   Version single-source                      twins check_release 4 + 4a (complete port)
+#   SKILLS index count                         twins check_release 6 (complete port)
+#   Chapter basename overlap                   twins check_release 8, shared tooling/overlap-whitelist.txt
+#   Map and classification data invariants     pure-data subset of check_release 9 + 10
+#   HTML self-containment                      twins check_release 12 [html-assets] (literal twin (hosts + regex pins)) plus [brand-tokens] (P13)
+#   Landing catalogue counts                    twins check_release 13 [catalogue-count]
+#   Catalog live-set parity                     twins check_release 14 [catalog-live-set]
+#   Routing map coverage                        twins check_release 15 [routing-map]
+#
+# CI does not cover, and why: full validate_pack (non-trivial parser; a fork
+# invites permanent drift), RR-B-30 packs.html regeneration equality (needs the
+# generator), full map threshold and note logic, full classification semantics
+# beyond set coverage, and generate_capability_map --check replay (definitionally
+# generator execution).
+#
+# Honest residual on the overlap whitelist: tooling/overlap-whitelist.txt is
+# PR-editable, so a PR can relax that gate in both places at once. That is the
+# same posture as the old in-code constant (also PR-editable); review is the
+# control, and the data file removes accidental divergence between the gates.
+name: validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions: read-all
+
+jobs:
+  content-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Content integrity check (leak sentinels)
+        run: |
+          set -e
+          hits=0
+          # Sentinels assembled from fragments so this workflow file does not flag itself.
+          for sentinel in "CONFI""DENTIAL" "BEGIN ""PRIVATE KEY" "BEGIN OPENSSH ""PRIVATE KEY" "BEGIN RSA ""PRIVATE KEY"; do
+            if grep -RIn --exclude-dir=.git --exclude-dir=.planning "$sentinel" .; then
+              echo "::error::leak sentinel found: $sentinel"
+              hits=1
+            fi
+          done
+          test "$hits" -eq 0
+
+      - name: Link policy check (no source-material URLs)
+        run: |
+          python3 - <<'PY'
+          # Source-material URLs are banned everywhere EXCEPT inside a `kind: signpost`
+          # pack (pure citation by design). Enforcement uses the trusted inline
+          # TRUSTED_HOSTS copy below, never the PR-editable data file. The parity
+          # assert fails the build if tooling/link-policy-hosts.txt (loaded by the
+          # local gate tooling/check_release.py) drifts from this set in either
+          # direction; a missing or unparseable data file counts as divergence.
+          import re, sys, pathlib
+          TRUSTED_HOSTS = frozenset({
+              "cisa.gov", "dau.edu", "dla.mil", "dod.mil", "dodcio", "energy.gov",
+              "eur-lex", "europa.eu", "everyspec.com", "govinfo.gov", "nasa.gov",
+              "nato.int", "nde-ed.org", "nist.gov", "ntrs", "ocw.mit", "omg.org",
+              "sebokwiki",
+          })
+          DATA_PATH = "tooling/link-policy-hosts.txt"
+          TOKEN = re.compile(r"^[A-Za-z0-9.-]+$")
+
+          def parse_host_file():
+              """Returns (tokens, error); tokens is None exactly when error is set."""
+              try:
+                  lines = pathlib.Path(DATA_PATH).read_text(encoding="utf-8").splitlines()
+              except OSError as e:
+                  return None, f"cannot read {DATA_PATH}: {e}"
+              tokens = []
+              for lineno, raw in enumerate(lines, 1):
+                  line = raw.strip()
+                  if not line or line.startswith("#"):
+                      continue
+                  if not TOKEN.fullmatch(line):
+                      return None, (f"malformed line in {DATA_PATH} "
+                                    f"(line {lineno}): {raw!r}")
+                  tokens.append(line)
+              return tokens, None
+
+          file_tokens, err = parse_host_file()
+          if file_tokens is None:
+              print(f"::error::link-policy parity: {err}")
+              sys.exit(1)
+
+          only_in_file = sorted(set(file_tokens) - TRUSTED_HOSTS)
+          only_in_workflow = sorted(TRUSTED_HOSTS - set(file_tokens))
+          if only_in_file or only_in_workflow:
+              print("::error::link-policy parity: tooling/link-policy-hosts.txt differs "
+                    "from workflow enforcement copy "
+                    f"(only-in-file={only_in_file} only-in-workflow={only_in_workflow})")
+              sys.exit(1)
+
+          HOSTS = re.compile(r"https?://[^\s)\"']*("
+                             + "|".join(re.escape(t) for t in sorted(TRUSTED_HOSTS)) + ")")
+          root = pathlib.Path(".")
+          signpost_dirs = {
+              p.parent for p in root.glob("packs/*/SKILL.md")
+              if re.search(r"^kind:\s*signpost\s*$", p.read_text(encoding="utf-8", errors="ignore"), re.M)
+          }
+          fails = 0
+          for p in root.rglob("*"):
+              # .planning: internal GSD workflow state, never ships, holds vetting evidence URLs.
+              # superpowers: process docs, same rationale (coordinator amendment per Task 2 SKIP_DIRS).
+              if p.suffix not in {".md", ".json", ".yaml", ".yml", ".txt"} or ".git" in p.parts or ".planning" in p.parts or "superpowers" in p.parts:
+                  continue
+              if p.parent in signpost_dirs:
+                  continue
+              m = HOSTS.search(p.read_text(encoding="utf-8", errors="ignore"))
+              if m:
+                  print(f"::error file={p}::source-material URL: {m.group(0)} (see docs/LICENSING.md)")
+                  fails += 1
+          print("no source-material links" if not fails else f"{fails} link-policy violation(s)")
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: HTML self-containment
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_release.py check 12 ([html-assets]) as a complete
+          # port. The host set and all four regex literals below are
+          # byte-identical to the local gate's; tooling/test_ci_gate.py asserts
+          # that parity and executes this shipped heredoc. Self-host convention:
+          # images under docs/assets/, fonts under docs/fonts/, relative
+          # references only. Fail closed: zero docs/*.html also fails.
+          import re, sys, pathlib
+          from urllib.parse import urlsplit
+
+          FIRST_PARTY_HOSTS = {"github.com", "jgsystemsconsulting.github.io"}
+
+          TAG_SLICE = re.compile(
+              r"<(link|img|script|iframe|source|video|audio|embed|track|object|base|meta)\b"
+              r"(?:\"[^\"]*\"|'[^']*'|[^>])*>",
+              re.I,
+          )
+          ATTR = re.compile(
+              r"""(?P<name>href|src|data|srcset|content|http-equiv|property|name)\s*=\s*"""
+              r"""(?:"(?P<d>[^"]*)"|'(?P<s>[^']*)'|(?P<u>[^\s>]+))""",
+              re.I,
+          )
+          CSS_URL = re.compile(r"""url\(\s*(['"]?)([^)'"\s]+)\1\s*\)""", re.I)
+          CSS_IMPORT = re.compile(
+              r"""@import\s+(?:url\(\s*(['"]?)([^)'"\s]+)\1\s*\)|(['"])([^'"]+)\3)\s*;?""",
+              re.I,
+          )
+          _META_IMAGE_PROPS = {"og:image", "og:image:secure_url"}
+          _META_IMAGE_NAMES = {"twitter:image", "twitter:image:src"}
+          _HREF_ELEMENTS = {"link", "base"}
+          _SRC_ELEMENTS = {"img", "script", "iframe", "source", "video", "audio", "embed", "track"}
+
+          def scan_html_external_assets(text: str) -> list[str]:
+              def is_external(url: str) -> bool:
+                  url = url.strip()
+                  if not url or url.startswith("#") or url[:5].lower() == "data:":
+                      return False
+                  if url[:7].lower() == "http://" or url[:8].lower() == "https://":
+                      parts = urlsplit(url)
+                      host = (parts.hostname or "").lower()
+                      if host in FIRST_PARTY_HOSTS and not parts.username and not parts.password:
+                          return False
+                      return True
+                  return url.startswith("//")
+
+              found = []
+
+              def consider(raw: str) -> None:
+                  url = raw.strip()
+                  if is_external(url) and url not in found:
+                      found.append(url)
+
+              for m in TAG_SLICE.finditer(text):
+                  tag = m.group(0)
+                  elem = m.group(1).lower()
+                  attrs = {}
+                  for a in ATTR.finditer(tag):
+                      value = a.group("d")
+                      if value is None:
+                          value = a.group("s")
+                      if value is None:
+                          value = a.group("u")
+                      name = a.group("name").lower()
+                      if name not in attrs:  # first attribute wins, matching browsers
+                          attrs[name] = value
+                  if elem in _HREF_ELEMENTS and "href" in attrs:
+                      consider(attrs["href"])
+                  if elem in _SRC_ELEMENTS and "src" in attrs:
+                      consider(attrs["src"])
+                  if elem == "object" and "data" in attrs:
+                      consider(attrs["data"])
+                  if "srcset" in attrs:
+                      for group in attrs["srcset"].split(","):
+                          tokens = group.strip().split()
+                          if tokens:
+                              consider(tokens[0])
+                  if elem == "meta":
+                      prop = attrs.get("property", "").lower()
+                      name_attr = attrs.get("name", "").lower()
+                      if prop in _META_IMAGE_PROPS or name_attr in _META_IMAGE_NAMES:
+                          if "content" in attrs:
+                              consider(attrs["content"])
+                      elif attrs.get("http-equiv", "").strip().lower() == "refresh" and "content" in attrs:
+                          m2 = re.search(r"url\s*=\s*(.*)", attrs["content"], re.I)
+                          if m2:
+                              target = m2.group(1).strip()
+                              if len(target) >= 2 and target[0] in "\"'" and target[-1] == target[0]:
+                                  target = target[1:-1]
+                              consider(target)
+
+              for m in CSS_URL.finditer(text):
+                  consider(m.group(2))
+              for m in CSS_IMPORT.finditer(text):
+                  consider(m.group(2) if m.group(2) is not None else m.group(4))
+
+              return found
+
+          pages = sorted(pathlib.Path("docs").glob("*.html"))
+          if not pages:
+              print("::error::[html-assets] no docs/*.html found")
+              sys.exit(1)
+          fails = 0
+          for page in pages:
+              for url in scan_html_external_assets(page.read_text(encoding="utf-8", errors="ignore")):
+                  print(f"::error file={page.as_posix()}::[html-assets] external asset in {page.as_posix()}: {url}")
+                  fails += 1
+          # P13 brand-token parity: the exclusive BRAND-TOKENS slice extracted
+          # from docs/index.html must appear verbatim in docs/packs.html.
+          # Marker literals are pinned by tooling/test_ci_gate.py HTML_ASSET_PAIR.
+          BRAND_BEGIN = "/* BRAND-TOKENS:BEGIN"
+          BRAND_END = "/* BRAND-TOKENS:END"
+
+          def slice_brand_tokens(text: str) -> str:
+              lines = text.splitlines()
+              begins = [i for i, ln in enumerate(lines) if ln.startswith(BRAND_BEGIN)]
+              ends = [i for i, ln in enumerate(lines) if ln.startswith(BRAND_END)]
+              if len(begins) != 1 or len(ends) != 1:
+                  raise ValueError(
+                      f"expected exactly one BRAND-TOKENS BEGIN and one END marker line, "
+                      f"found {len(begins)} BEGIN / {len(ends)} END"
+                  )
+              if begins[0] >= ends[0]:
+                  raise ValueError("BRAND-TOKENS:BEGIN must precede BRAND-TOKENS:END")
+              return "\n".join(lines[begins[0] + 1:ends[0]])
+
+          try:
+              index_html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+              brand_block = slice_brand_tokens(index_html)
+              packs_text = pathlib.Path("docs/packs.html").read_text(encoding="utf-8")
+              if brand_block not in packs_text:
+                  print("::error::[brand-tokens] docs/packs.html does not carry the "
+                        "index.html brand token block verbatim; rerun "
+                        "tooling/gen_packs_page.py")
+                  fails += 1
+              elif not fails:
+                  print("[brand-tokens] index.html brand block present in packs.html")
+          except ValueError as e:
+              print(f"::error::[brand-tokens] {e}")
+              fails += 1
+          except OSError as e:
+              print(f"::error::[brand-tokens] cannot read page: {e}")
+              fails += 1
+          if not fails:
+              print("[html-assets] all docs/*.html pages self-contained")
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: Landing catalogue counts
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_release.py check 13 ([catalogue-count]) as a complete
+          # port. Section marker, h2/chip/SVG regex literals below are byte-identical
+          # to the local gate; tooling/test_ci_gate.py asserts that parity and
+          # executes this shipped heredoc. Never executes checkout repository code.
+          import re, sys, pathlib
+
+          CATALOGUE_SECTION_MARKER = "<!-- §06 The catalogue -->"
+          CATALOGUE_H2_RE = re.compile(
+              r"<h2>\s*(\d+)\s+packs\s*(?:&middot;|·)\s*(\d+)\s+signposts\s*</h2>",
+              re.I,
+          )
+          CATALOGUE_CHIP_RE = re.compile(
+              r'<div\s+class="pk"\s*>\s*<b>(.*?)</b>',
+              re.I | re.S,
+          )
+          CATALOGUE_CHIP_COUNT_RE = re.compile(
+              r"^(?P<label>.*?)\s*(?:&middot;|·)\s*(?P<count>\d+)\s*$",
+              re.S,
+          )
+          CATALOGUE_SVG_NM_RE = re.compile(
+              r"(\d+)\s+packs\s*(?:&middot;|·)\s*(\d+)\s+signposts",
+              re.I,
+          )
+          STILL_CATALOGUE_SVG = "docs/assets/still-catalogue.svg"
+
+          def inventory_pack_counts(packs_root):
+              errs = []
+              if not packs_root.is_dir():
+                  return 0, 0, [f"[catalogue-count] packs root missing: {packs_root}"]
+              content = 0
+              signposts = 0
+              for child in sorted(p for p in packs_root.iterdir() if p.is_dir()):
+                  skill = child / "SKILL.md"
+                  if not skill.is_file():
+                      errs.append(f"[catalogue-count] missing SKILL.md in packs/{child.name}")
+                      continue
+                  try:
+                      text = skill.read_text(encoding="utf-8")
+                  except OSError as e:
+                      errs.append(f"[catalogue-count] cannot read packs/{child.name}/SKILL.md: {e}")
+                      continue
+                  m = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, re.S)
+                  if not m:
+                      errs.append(
+                          f"[catalogue-count] unparseable frontmatter in packs/{child.name}/SKILL.md"
+                      )
+                      continue
+                  fm = m.group(1)
+                  if re.search(r"^kind:\s*signpost\s*$", fm, re.I | re.M):
+                      signposts += 1
+                  elif re.search(r"^kind:\s*orchestrator\s*$", fm, re.I | re.M):
+                      pass
+                  else:
+                      content += 1
+              return content, signposts, errs
+
+          def slice_catalogue_section(html):
+              start = html.find(CATALOGUE_SECTION_MARKER)
+              if start < 0:
+                  return None
+              rest = html[start + len(CATALOGUE_SECTION_MARKER):]
+              nxt = re.search(r"\n<!--\s*§", rest)
+              if nxt:
+                  return html[start:start + len(CATALOGUE_SECTION_MARKER) + nxt.start()]
+              return html[start:]
+
+          def parse_catalogue_chips(section):
+              errs = []
+              content_sum = 0
+              signpost_count = None
+              signpost_chips = 0
+              for m in CATALOGUE_CHIP_RE.finditer(section):
+                  inner = re.sub(r"\s+", " ", m.group(1)).strip()
+                  cm = CATALOGUE_CHIP_COUNT_RE.match(inner)
+                  if not cm:
+                      errs.append(f"[catalogue-count] unparseable chip label: {inner!r}")
+                      continue
+                  label = cm.group("label")
+                  count = int(cm.group("count"))
+                  if re.search(r"signpost", label, re.I):
+                      signpost_chips += 1
+                      signpost_count = count
+                  else:
+                      content_sum += count
+              return content_sum, signpost_count, signpost_chips, errs
+
+          def parse_svg_catalogue_nm(svg_text):
+              texts = re.findall(r"<text\b[^>]*>(.*?)</text>", svg_text, re.I | re.S)
+              subtitle = None
+              footer = None
+              for raw in texts:
+                  t = re.sub(r"\s+", " ", raw).strip()
+                  m = CATALOGUE_SVG_NM_RE.search(t)
+                  if not m:
+                      continue
+                  pair = (int(m.group(1)), int(m.group(2)))
+                  if "open sources" in t.lower():
+                      subtitle = pair
+                  elif "filter" in t.lower() or "packs.html" in t.lower():
+                      footer = pair
+                  elif subtitle is None:
+                      subtitle = pair
+                  else:
+                      footer = pair
+              return subtitle, footer
+
+          fails = 0
+          n_live, m_live, inv_errs = inventory_pack_counts(pathlib.Path("packs"))
+          for e in inv_errs:
+              print(f"::error::{e}")
+              fails += 1
+          if inv_errs:
+              sys.exit(1)
+
+          try:
+              index_html = pathlib.Path("docs/index.html").read_text(encoding="utf-8")
+          except OSError as e:
+              print(f"::error::[catalogue-count] cannot read docs/index.html: {e}")
+              sys.exit(1)
+
+          section = slice_catalogue_section(index_html)
+          if section is None:
+              print(f"::error::[catalogue-count] missing section marker {CATALOGUE_SECTION_MARKER!r} in docs/index.html")
+              fails += 1
+          else:
+              h2 = CATALOGUE_H2_RE.search(section)
+              if not h2:
+                  print(
+                      f"::error::[catalogue-count] §06 h2 must match '<N> packs · <M> signposts' "
+                      f"(live {n_live} packs / {m_live} signposts)"
+                  )
+                  fails += 1
+              else:
+                  n_h2, m_h2 = int(h2.group(1)), int(h2.group(2))
+                  if n_h2 != n_live or m_h2 != m_live:
+                      print(
+                          f"::error::[catalogue-count] §06 h2 states {n_h2} packs / {m_h2} signposts "
+                          f"but live inventory is {n_live} packs / {m_live} signposts"
+                      )
+                      fails += 1
+
+              content_sum, signpost_count, signpost_chips, chip_errs = parse_catalogue_chips(section)
+              for e in chip_errs:
+                  print(f"::error::{e}")
+                  fails += 1
+              if signpost_chips != 1:
+                  print(
+                      f"::error::[catalogue-count] expected exactly one Signposts chip, found {signpost_chips} "
+                      f"(live signposts {m_live})"
+                  )
+                  fails += 1
+              elif signpost_count != m_live:
+                  print(
+                      f"::error::[catalogue-count] Signposts chip COUNT {signpost_count} != live signposts {m_live}"
+                  )
+                  fails += 1
+              if content_sum != n_live:
+                  print(
+                      f"::error::[catalogue-count] content chip COUNT sum {content_sum} != live content packs {n_live}"
+                  )
+                  fails += 1
+
+          svg_path = pathlib.Path(STILL_CATALOGUE_SVG)
+          if not svg_path.is_file():
+              print(f"::error::[catalogue-count] missing {STILL_CATALOGUE_SVG}")
+              fails += 1
+          else:
+              try:
+                  svg_text = svg_path.read_text(encoding="utf-8")
+              except OSError as e:
+                  print(f"::error::[catalogue-count] cannot read {STILL_CATALOGUE_SVG}: {e}")
+                  fails += 1
+              else:
+                  sub_nm, foot_nm = parse_svg_catalogue_nm(svg_text)
+                  if sub_nm is None:
+                      print(
+                          f"::error::[catalogue-count] {STILL_CATALOGUE_SVG} subtitle missing "
+                          f"'N packs · M signposts' (live {n_live}/{m_live})"
+                      )
+                      fails += 1
+                  elif sub_nm != (n_live, m_live):
+                      print(
+                          f"::error::[catalogue-count] {STILL_CATALOGUE_SVG} subtitle states "
+                          f"{sub_nm[0]} packs / {sub_nm[1]} signposts but live is "
+                          f"{n_live} packs / {m_live} signposts"
+                      )
+                      fails += 1
+                  if foot_nm is None:
+                      print(
+                          f"::error::[catalogue-count] {STILL_CATALOGUE_SVG} footer missing "
+                          f"'N packs · M signposts' (live {n_live}/{m_live})"
+                      )
+                      fails += 1
+                  elif foot_nm != (n_live, m_live):
+                      print(
+                          f"::error::[catalogue-count] {STILL_CATALOGUE_SVG} footer states "
+                          f"{foot_nm[0]} packs / {foot_nm[1]} signposts but live is "
+                          f"{n_live} packs / {m_live} signposts"
+                      )
+                      fails += 1
+
+          if not fails:
+              print(f"[catalogue-count] landing matches live {n_live} packs / {m_live} signposts")
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: Pack frontmatter lint
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys
+          fails = 0
+          for f in glob.glob("packs/*/SKILL.md"):
+              t = open(f, encoding="utf-8").read()
+              m = re.match(r"^---\s*\n(.*?)\n---\s*\n", t, re.S)
+              if not m:
+                  print(f"::error file={f}::no YAML frontmatter"); fails += 1; continue
+              fm = m.group(1)
+              name = re.search(r"^name:\s*(\S+)", fm, re.M)
+              if not name:
+                  print(f"::error file={f}::frontmatter missing name"); fails += 1
+              elif not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name.group(1).strip().strip('\"\'')):
+                  print(f"::error file={f}::name not kebab-case: {name.group(1)}"); fails += 1
+              if not re.search(r"^description:\s*\S", fm, re.M):
+                  print(f"::error file={f}::frontmatter missing description"); fails += 1
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: Catalog JSON valid
+        run: python3 -c "import json; json.load(open('catalog.json')); print('catalog.json OK')"
+
+      - name: Catalog live-set parity
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_release.py check 14 ([catalog-live-set]) as a complete
+          # stdlib port. Never executes repo code. Shared literals are pinned by
+          # tooling/test_ci_gate.py (CATALOG_LIVE_SET_PAIR).
+          import json, re, sys, pathlib
+
+          CATALOG_JSON_PATH = "catalog.json"
+          CATALOG_LIVE_SET_TAG = "[catalog-live-set]"
+
+          def inventory_pack_slugs(packs_root):
+              errs = []
+              content, signposts, orchestrators = set(), set(), set()
+              if not packs_root.is_dir():
+                  return content, signposts, orchestrators, [f"{CATALOG_LIVE_SET_TAG} packs root missing: {packs_root}"]
+              for child in sorted(p for p in packs_root.iterdir() if p.is_dir()):
+                  skill = child / "SKILL.md"
+                  if not skill.is_file():
+                      errs.append(f"{CATALOG_LIVE_SET_TAG} missing SKILL.md in packs/{child.name}")
+                      continue
+                  try:
+                      text = skill.read_text(encoding="utf-8")
+                  except OSError as e:
+                      errs.append(f"{CATALOG_LIVE_SET_TAG} cannot read packs/{child.name}/SKILL.md: {e}")
+                      continue
+                  m = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, re.S)
+                  if not m:
+                      errs.append(
+                          f"{CATALOG_LIVE_SET_TAG} unparseable frontmatter in packs/{child.name}/SKILL.md"
+                      )
+                      continue
+                  fm = m.group(1)
+                  if re.search(r"^kind:\s*signpost\s*$", fm, re.I | re.M):
+                      signposts.add(child.name)
+                  elif re.search(r"^kind:\s*orchestrator\s*$", fm, re.I | re.M):
+                      orchestrators.add(child.name)
+                  else:
+                      content.add(child.name)
+              return content, signposts, orchestrators, errs
+
+          fails = 0
+          packs_root = pathlib.Path("packs")
+          content, signposts, orchestrators, inv_errs = inventory_pack_slugs(packs_root)
+          for e in inv_errs:
+              print(f"::error::{e}")
+              fails += 1
+          if inv_errs:
+              sys.exit(1)
+
+          try:
+              raw = json.loads(pathlib.Path(CATALOG_JSON_PATH).read_text(encoding="utf-8"))
+          except (OSError, json.JSONDecodeError) as e:
+              print(f"::error::{CATALOG_LIVE_SET_TAG} cannot read/parse {CATALOG_JSON_PATH}: {e}")
+              sys.exit(1)
+          if not isinstance(raw, dict):
+              print(f"::error::{CATALOG_LIVE_SET_TAG} {CATALOG_JSON_PATH} root must be an object")
+              sys.exit(1)
+
+          packs_list = raw.get("packs")
+          if not isinstance(packs_list, list):
+              print(f"::error::{CATALOG_LIVE_SET_TAG} {CATALOG_JSON_PATH} packs must be a list")
+              sys.exit(1)
+
+          live, all_slugs = set(), set()
+          duplicates = []
+          bad_entries = 0
+          for entry in packs_list:
+              if not isinstance(entry, dict):
+                  bad_entries += 1
+                  continue
+              slug = entry.get("slug")
+              if not isinstance(slug, str) or not slug.strip():
+                  bad_entries += 1
+                  continue
+              slug = slug.strip()
+              if slug in all_slugs:
+                  duplicates.append(slug)
+              all_slugs.add(slug)
+              status = entry.get("status")
+              if status is None or status == "live":
+                  live.add(slug)
+
+          if bad_entries:
+              print(
+                  f"::error::{CATALOG_LIVE_SET_TAG} {CATALOG_JSON_PATH} packs has {bad_entries} "
+                  "entries missing a non-empty string slug"
+              )
+              fails += 1
+          if duplicates:
+              print(
+                  f"::error::{CATALOG_LIVE_SET_TAG} duplicate slug(s) in {CATALOG_JSON_PATH} packs: "
+                  f"{sorted(set(duplicates))}"
+              )
+              fails += 1
+
+          only_packs = sorted(content - live)
+          only_catalog = sorted(live - content)
+          if only_packs or only_catalog:
+              parts = []
+              if only_packs:
+                  parts.append(f"only in packs/: {only_packs}")
+              if only_catalog:
+                  parts.append(f"only in catalog.packs live: {only_catalog}")
+              print(
+                  f"::error::{CATALOG_LIVE_SET_TAG} live slug set mismatch "
+                  f"(content packs {len(content)} vs catalog live {len(live)}): "
+                  + "; ".join(parts)
+              )
+              fails += 1
+
+          signposts_in_catalog = sorted(signposts & all_slugs)
+          if signposts_in_catalog:
+              print(
+                  f"::error::{CATALOG_LIVE_SET_TAG} signpost slug(s) must not appear in "
+                  f"{CATALOG_JSON_PATH} packs: {signposts_in_catalog}"
+              )
+              fails += 1
+
+          orchestrators_in_catalog = sorted(orchestrators & all_slugs)
+          if orchestrators_in_catalog:
+              print(
+                  f"::error::{CATALOG_LIVE_SET_TAG} orchestrator slug(s) must not appear in "
+                  f"{CATALOG_JSON_PATH} packs: {orchestrators_in_catalog}"
+              )
+              fails += 1
+
+          if fails:
+              sys.exit(1)
+          print(
+              f"{CATALOG_LIVE_SET_TAG} catalog live set matches "
+              f"{len(content)} content packs (signposts excluded)"
+          )
+          PY
+
+      - name: Routing map coverage
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_release.py check 15 ([routing-map]) as a complete
+          # stdlib port. Never executes repo code. Markers, headings, and the
+          # slug/backtick regex literals below are byte-identical to the local
+          # gate's; tooling/test_ci_gate.py asserts that parity and executes this
+          # shipped heredoc.
+          import re, sys, pathlib
+
+          ROUTING_MAP_TAG = "[routing-map]"
+          ROUTING_MAP_BEGIN = "<!-- ROUTING-MAP:BEGIN -->"
+          ROUTING_MAP_END = "<!-- ROUTING-MAP:END -->"
+          ROUTING_MAP_HEADINGS = (
+              "### Topics",
+              "### Agency contexts",
+              "### Deliverables",
+              "### Licences",
+          )
+          # Pack-bearing column indexes (zero-based) per pinned header.
+          ROUTING_MAP_PACK_COLS = {
+              "### Topics": (2,),  # Packs (best first)
+              "### Agency contexts": (2,),  # Packs
+              "### Deliverables": (2, 3, 4),  # Draft, Review, Verify
+              "### Licences": (0,),  # Pack
+          }
+          ROUTING_MAP_SLUG_RE = re.compile(r"^[a-z0-9-]+$")
+          ROUTING_MAP_BACKTICK_RE = re.compile(r"`([^`]*)`")
+          ROUTING_MAP_SEP_RE = re.compile(r"^[\|\-:\s]+$")
+          ROUTING_MAP_LICENSE_RE = re.compile(r"^license:\s*(.*)$", re.M)
+
+          def report(errs):
+              for msg in errs:
+                  print(f"::error::{msg}")
+
+          def inventory_pack_slugs(packs_root):
+              # Same derivation and [routing-map]-tagged messages as the local gate.
+              errs = []
+              content, signposts, orchestrators = set(), set(), set()
+              if not packs_root.is_dir():
+                  return content, signposts, orchestrators, [
+                      f"{ROUTING_MAP_TAG} packs root missing: {packs_root}"
+                  ]
+              for child in sorted(p for p in packs_root.iterdir() if p.is_dir()):
+                  skill = child / "SKILL.md"
+                  if not skill.is_file():
+                      errs.append(
+                          f"{ROUTING_MAP_TAG} missing SKILL.md in packs/{child.name}"
+                      )
+                      continue
+                  try:
+                      text = skill.read_text(encoding="utf-8")
+                  except OSError as e:
+                      errs.append(
+                          f"{ROUTING_MAP_TAG} cannot read packs/{child.name}/SKILL.md: {e}"
+                      )
+                      continue
+                  m = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, re.S)
+                  if not m:
+                      errs.append(
+                          f"{ROUTING_MAP_TAG} unparseable frontmatter in packs/{child.name}/SKILL.md"
+                      )
+                      continue
+                  fm = m.group(1)
+                  if re.search(r"^kind:\s*signpost\s*$", fm, re.I | re.M):
+                      signposts.add(child.name)
+                  elif re.search(r"^kind:\s*orchestrator\s*$", fm, re.I | re.M):
+                      orchestrators.add(child.name)
+                  else:
+                      content.add(child.name)
+              return content, signposts, orchestrators, errs
+
+          def split_row(line):
+              """Split a Markdown table row into stripped cell strings."""
+              raw = line.strip()
+              if raw.startswith("|"):
+                  raw = raw[1:]
+              if raw.endswith("|"):
+                  raw = raw[:-1]
+              return [c.strip() for c in raw.split("|")]
+
+          def is_separator(line):
+              s = line.strip()
+              return bool(s) and ROUTING_MAP_SEP_RE.fullmatch(s) is not None
+
+          def pack_yaml_license(pack_dir):
+              """Return PACK.yaml license value with surrounding double quotes stripped, or None."""
+              path = pack_dir / "PACK.yaml"
+              if not path.is_file():
+                  return None
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except OSError:
+                  return None
+              m = ROUTING_MAP_LICENSE_RE.search(text)
+              if not m:
+                  return None
+              val = m.group(1).strip()
+              if len(val) >= 2 and val[0] == '"' and val[-1] == '"':
+                  val = val[1:-1]
+              return val
+
+          tag = ROUTING_MAP_TAG
+          packs_root = pathlib.Path("packs")
+          errs = []
+
+          content, _signposts, orchestrators, inv_errs = inventory_pack_slugs(packs_root)
+          errs.extend(inv_errs)
+
+          if len(orchestrators) != 1:
+              errs.append(
+                  f"{tag} exactly one orchestrator member required: "
+                  f"{len(orchestrators)} found"
+              )
+              report(errs)
+              sys.exit(1)
+
+          orch_slug = next(iter(orchestrators))
+          skill_path = packs_root / orch_slug / "SKILL.md"
+          try:
+              skill_text = skill_path.read_text(encoding="utf-8")
+          except OSError as e:
+              errs.append(f"{tag} cannot read packs/{orch_slug}/SKILL.md: {e}")
+              report(errs)
+              sys.exit(1)
+
+          n_begin = skill_text.count(ROUTING_MAP_BEGIN)
+          n_end = skill_text.count(ROUTING_MAP_END)
+          if n_begin != 1 or n_end != 1:
+              errs.append(
+                  f"{tag} expected exactly one {ROUTING_MAP_BEGIN} and one "
+                  f"{ROUTING_MAP_END}, found {n_begin} BEGIN / {n_end} END"
+              )
+              report(errs)
+              sys.exit(1)
+          begin_at = skill_text.find(ROUTING_MAP_BEGIN)
+          end_at = skill_text.find(ROUTING_MAP_END)
+          if begin_at >= end_at:
+              errs.append(
+                  f"{tag} {ROUTING_MAP_BEGIN} must precede {ROUTING_MAP_END}"
+              )
+              report(errs)
+              sys.exit(1)
+
+          region = skill_text[begin_at + len(ROUTING_MAP_BEGIN) : end_at]
+
+          # Heading presence and order (each exactly once).
+          positions = {}
+          for h in ROUTING_MAP_HEADINGS:
+              matches = list(re.finditer(re.escape(h), region))
+              if len(matches) != 1:
+                  errs.append(
+                      f"{tag} expected exactly one '{h}' in routing map, "
+                      f"found {len(matches)}"
+                  )
+                  continue
+              positions[h] = matches[0].start()
+          if len(positions) != len(ROUTING_MAP_HEADINGS):
+              report(errs)
+              sys.exit(1)
+          ordered = sorted(positions, key=positions.get)
+          if ordered != list(ROUTING_MAP_HEADINGS):
+              errs.append(
+                  f"{tag} routing-map subheadings must appear in order "
+                  f"{list(ROUTING_MAP_HEADINGS)}; found {ordered}"
+              )
+              report(errs)
+              sys.exit(1)
+
+          # Slice region into per-heading bodies (text after heading until next heading).
+          heading_spans = []
+          for i, h in enumerate(ROUTING_MAP_HEADINGS):
+              start = positions[h] + len(h)
+              end = (
+                  positions[ROUTING_MAP_HEADINGS[i + 1]]
+                  if i + 1 < len(ROUTING_MAP_HEADINGS)
+                  else len(region)
+              )
+              heading_spans.append((h, region[start:end]))
+
+          topics_pack_tokens = set()
+          licence_rows = {}  # pack slug -> licence cell text
+
+          for heading, body in heading_spans:
+              pack_cols = ROUTING_MAP_PACK_COLS[heading]
+              table_lines = [ln for ln in body.splitlines() if ln.strip().startswith("|")]
+              if not table_lines:
+                  errs.append(f"{tag} {heading}: no table rows found")
+                  continue
+
+              # Classify rows: first non-separator is header; skip separators; rest data.
+              header_cells = None
+              data_rows = []  # (raw_line, cells)
+              for ln in table_lines:
+                  if is_separator(ln):
+                      continue
+                  cells = split_row(ln)
+                  if header_cells is None:
+                      header_cells = cells
+                      continue
+                  data_rows.append((ln.strip(), cells))
+
+              if header_cells is None:
+                  errs.append(f"{tag} {heading}: missing header row")
+                  continue
+
+              needed = max(pack_cols) + 1
+              if len(header_cells) < needed:
+                  errs.append(
+                      f"{tag} {heading}: header has {len(header_cells)} column(s), "
+                      f"need at least {needed}"
+                  )
+                  continue
+
+              for raw_line, cells in data_rows:
+                  row_label = cells[0] if cells else raw_line
+                  if len(cells) < needed:
+                      errs.append(
+                          f"{tag} {heading}: row {row_label!r} has {len(cells)} "
+                          f"column(s), need at least {needed}"
+                      )
+                      continue
+
+                  # Rule 3: every backticked span on the row must be a slug token, and
+                  # must name an existing packs/<token>/SKILL.md (not the orchestrator).
+                  for m in ROUTING_MAP_BACKTICK_RE.finditer(raw_line):
+                      token = m.group(1)
+                      if not ROUTING_MAP_SLUG_RE.fullmatch(token):
+                          errs.append(
+                              f"{tag} {heading}: backticked span `{token}` is not a "
+                              f"slug token on row {row_label!r}"
+                          )
+                          continue
+                      if token == orch_slug:
+                          errs.append(
+                              f"{tag} {heading}: orchestrator slug `{token}` must not "
+                              f"appear as a routing target on row {row_label!r}"
+                          )
+                          continue
+                      if not (packs_root / token / "SKILL.md").is_file():
+                          errs.append(
+                              f"{tag} {heading}: unknown pack slug `{token}` on row "
+                              f"{row_label!r}"
+                          )
+
+                  # Rule 4: pack-bearing cells hold only backticked slugs or are empty.
+                  for col_i in pack_cols:
+                      cell = cells[col_i]
+                      remainder = ROUTING_MAP_BACKTICK_RE.sub("", cell)
+                      if re.search(r"[^\s,]", remainder):
+                          errs.append(
+                              f"{tag} {heading}: pack cell has non-slug text on row "
+                              f"{row_label!r}: {cell!r}"
+                          )
+                          continue
+                      # Collect Topics coverage tokens (column index 2 only).
+                      if heading == "### Topics" and col_i == 2:
+                          for tm in ROUTING_MAP_BACKTICK_RE.finditer(cell):
+                              tok = tm.group(1)
+                              if ROUTING_MAP_SLUG_RE.fullmatch(tok):
+                                  topics_pack_tokens.add(tok)
+
+                  # Rule 6 gather: Licences pack + licence cells.
+                  if heading == "### Licences":
+                      pack_cell = cells[0]
+                      lic_cell = cells[1] if len(cells) > 1 else ""
+                      slugs_in_pack = [
+                          tm.group(1)
+                          for tm in ROUTING_MAP_BACKTICK_RE.finditer(pack_cell)
+                          if ROUTING_MAP_SLUG_RE.fullmatch(tm.group(1))
+                      ]
+                      if len(slugs_in_pack) != 1:
+                          errs.append(
+                              f"{tag} {heading}: Pack cell must hold exactly one "
+                              f"backticked slug on row {row_label!r}"
+                          )
+                      else:
+                          slug = slugs_in_pack[0]
+                          if slug in licence_rows:
+                              errs.append(
+                                  f"{tag} {heading}: duplicate Pack row for `{slug}`"
+                              )
+                          licence_rows[slug] = lic_cell.strip()
+
+          # Rule 5: Topics Packs column covers every content slug.
+          for slug in sorted(content - topics_pack_tokens):
+              errs.append(
+                  f"{tag} content slug `{slug}` missing from ### Topics Packs column"
+              )
+
+          # Rule 6: licence parity for non-Public-Domain content packs.
+          expected_lic = {}
+          for slug in sorted(content):
+              lic = pack_yaml_license(packs_root / slug)
+              if lic is None:
+                  errs.append(
+                      f"{tag} cannot read license: from packs/{slug}/PACK.yaml"
+                  )
+                  continue
+              if not lic.startswith("Public Domain"):
+                  expected_lic[slug] = lic
+
+          expected_set = set(expected_lic)
+          found_set = set(licence_rows)
+          for slug in sorted(expected_set - found_set):
+              errs.append(
+                  f"{tag} ### Licences missing row for non-Public-Domain pack `{slug}`"
+              )
+          for slug in sorted(found_set - expected_set):
+              errs.append(
+                  f"{tag} ### Licences extra row for `{slug}` "
+                  f"(not a non-Public-Domain content pack)"
+              )
+          for slug in sorted(expected_set & found_set):
+              cell = licence_rows[slug]
+              want = expected_lic[slug]
+              if cell != want:
+                  errs.append(
+                      f"{tag} ### Licences licence cell for `{slug}` is {cell!r}, "
+                      f"expected {want!r}"
+                  )
+
+          report(errs)
+          if errs:
+              sys.exit(1)
+          print(f"{tag} routing map covers {len(content)} content packs")
+          PY
+
+      - name: Version single-source
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_release.py checks 4 + 4a. The three version
+          # regex literals below are byte-identical to the local gate's;
+          # tooling/test_ci_gate.py asserts that parity and fails on drift.
+          import json, os, re, sys
+          versions = {}
+          try:
+              with open(".claude-plugin/plugin.json", encoding="utf-8") as fh:
+                  versions["plugin.json"] = json.load(fh).get("version", "")
+          except Exception as e:
+              print(f"::error::[version] cannot read plugin.json: {e}")
+              versions["plugin.json"] = ""
+          cl = open("CHANGELOG.md", encoding="utf-8").read() if os.path.isfile("CHANGELOG.md") else ""
+          m = re.search(r"^##\s*\[(\d+\.\d+\.\d+)\]", cl, re.M)
+          versions["CHANGELOG.md"] = m.group(1) if m else ""
+          ri = open("RELEASE-INFO.txt", encoding="utf-8").read() if os.path.isfile("RELEASE-INFO.txt") else ""
+          m = re.search(r"Version:\s*([0-9]+\.[0-9]+\.[0-9]+)", ri)
+          versions["RELEASE-INFO.txt"] = m.group(1) if m else ""
+          fails = 0
+          # 4a. both website product YAMLs must carry the release version.
+          expected = versions["RELEASE-INFO.txt"]
+          for rel in ("docs/products/website/01-sector-catalogue.yaml",
+                      "docs/products/website/catalog.yaml"):
+              body = open(rel, encoding="utf-8", errors="ignore").read() if os.path.isfile(rel) else ""
+              m = re.search(r'version:\s*"([0-9]+\.[0-9]+\.[0-9]+)"', body)
+              got = m.group(1) if m else ""
+              if got != expected:
+                  print(f"::error file={rel}::[version] website YAML version '{got}' != RELEASE-INFO '{expected}'")
+                  fails += 1
+          distinct = {v for v in versions.values() if v}
+          if len(distinct) > 1 or "" in versions.values():
+              print(f"::error::[version] disagreement / missing: {versions}")
+              fails += 1
+          sys.exit(1 if fails else 0)
+          PY
+
+      - name: SKILLS index count
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_release.py check 6 (SKILLS.md entries vs shipped
+          # packs, signpost-aware). The link regex and the signpost regex are
+          # byte-identical to the local gate's; tooling/test_ci_gate.py asserts it.
+          import re, sys, pathlib
+          root = pathlib.Path(".")
+          signpost_dirs = {
+              p.parent for p in root.glob("packs/*/SKILL.md")
+              if re.search(r"^kind:\s*signpost\s*$", p.read_text(encoding="utf-8", errors="ignore"), re.M)
+          }
+          packs = sorted(p for p in root.glob("packs/*") if p.is_dir() and p not in signpost_dirs)
+          skills = (root / "SKILLS.md").read_text(encoding="utf-8") if (root / "SKILLS.md").is_file() else ""
+          signpost_names = {d.name for d in signpost_dirs}
+          entry_slugs = re.findall(r"\[`([^`]+)`\]\(packs/", skills)
+          entry_count = len([s for s in entry_slugs if s not in signpost_names])
+          if packs and entry_count != len(packs):
+              print(f"::error::[index] SKILLS.md lists {entry_count} packs but {len(packs)} are shipped")
+              sys.exit(1)
+          print(f"[index] SKILLS.md entries match shipped packs ({entry_count})")
+          PY
+
+      - name: Chapter basename overlap
+        run: |
+          python3 - <<'PY'
+          # Twins tooling/check_overlap.py. The whitelist lives in the shared
+          # data file tooling/overlap-whitelist.txt, read fail-closed by both
+          # gates (parity by construction). Honest residual: the data file is
+          # PR-editable, so a PR can relax this gate in both places at once,
+          # the same posture as the old in-code constant; review is the control.
+          import re, sys, pathlib
+          DATA_PATH = "tooling/overlap-whitelist.txt"
+          TOKEN = re.compile(r"^[A-Za-z0-9.-]+$")
+
+          def load_whitelist():
+              # Mirrors the link-policy-hosts.txt reader: [A-Za-z0-9.-]+ tokens,
+              # '#' comments and blank lines ignored; unreadable or malformed
+              # file and zero tokens all fail closed.
+              try:
+                  lines = pathlib.Path(DATA_PATH).read_text(encoding="utf-8").splitlines()
+              except OSError as e:
+                  return None, f"cannot read {DATA_PATH}: {e}"
+              tokens = set()
+              for lineno, raw in enumerate(lines, 1):
+                  line = raw.strip()
+                  if not line or line.startswith("#"):
+                      continue
+                  if not TOKEN.fullmatch(line):
+                      return None, f"malformed line in {DATA_PATH} (line {lineno}): {raw!r}"
+                  tokens.add(line)
+              if not tokens:
+                  return None, f"whitelist empty ({DATA_PATH} has no tokens)"
+              return tokens, None
+
+          whitelist, err = load_whitelist()
+          if whitelist is None:
+              print(f"::error::[overlap] whitelist data file: {err}")
+              sys.exit(1)
+          chaps = {}
+          for p in sorted(pathlib.Path(".").glob("packs/*/chapters/*.md")):
+              slug = p.parent.parent.name
+              chaps.setdefault(p.name, []).append(slug)
+          bad = {name: packs for name, packs in chaps.items()
+                 if len(packs) > 1 and name not in whitelist}
+          if bad:
+              for name in sorted(bad):
+                  print(f"::error::[overlap] {name}: {', '.join(sorted(bad[name]))}")
+              sys.exit(1)
+          print("[overlap] no un-whitelisted chapter basename collisions")
+          PY
+
+      - name: Map and classification data invariants
+        run: |
+          python3 - <<'PY'
+          # Pure-data subset of tooling/check_capability_map.py (check 9) and
+          # tooling/check_classification_rules.py (check 10). Envelope pins and
+          # disk-set derivation mirror the local twins exactly so the two gates
+          # cannot disagree; thresholds, note/override consistency, support
+          # policy, and generator replay stay local-only.
+          import json, os, re, sys, pathlib
+          SUPPORT_SUFFIX = " (support file)"
+          MAP_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+          GENERATED_ON_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+          fails = 0
+
+          # Empty-tree constant pins (Task 5 twin values). Byte-identical
+          # assignment forms must appear here and in the local twins so
+          # tooling/test_ci_gate.py EMPTY_TREE_PAIR can catch drift the same
+          # way ROUTING_MAP_PAIR pins routing literals. Runtime asserts keep
+          # the pin values honest inside this self-contained gate.
+          # THRESHOLDS: dict[str, int] = {}  # empty-tree: zero-tolerant name-keyed minimums
+          # EXPECTED_NOTES_COUNT = 0
+          # expected_signposts: list[str] = []
+          THRESHOLDS = {}
+          EXPECTED_NOTES_COUNT = 0
+          expected_signposts = []
+          if THRESHOLDS != {} or EXPECTED_NOTES_COUNT != 0 or list(expected_signposts) != []:
+              print(f"::error::[map-data] empty-tree constant pin drift "
+                    f"(THRESHOLDS={THRESHOLDS!r} EXPECTED_NOTES_COUNT={EXPECTED_NOTES_COUNT!r} "
+                    f"expected_signposts={expected_signposts!r})")
+              fails += 1
+
+          def report(tag, path, msgs):
+              global fails
+              for msg in msgs:
+                  print(f"::error file={path}::{tag} {msg}")
+                  fails += 1
+
+          def envelope(path, tag, want_schema):
+              if not os.path.isfile(path):
+                  report(tag, path, [f"file missing: {path}"])
+                  return None, "", ""
+              try:
+                  with open(path, encoding="utf-8") as fh:
+                      data = json.load(fh)
+              except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                  report(tag, path, [f"JSON decode error: {e}"])
+                  return None, "", ""
+              if not isinstance(data, dict):
+                  report(tag, path, ["top-level JSON must be an object"])
+                  return None, "", ""
+              errs = []
+              schema = data.get("schema_version")
+              if not isinstance(schema, int) or isinstance(schema, bool) or schema != want_schema:
+                  errs.append(f"schema_version must be int {want_schema}, got {schema!r}")
+              mv = data.get("map_version")
+              if not mv:
+                  errs.append("missing or empty map_version")
+              elif not isinstance(mv, str) or not MAP_VERSION_RE.fullmatch(mv):
+                  errs.append(f"map_version must match N.N.N, got {mv!r}")
+              go = data.get("generated_on")
+              if not go:
+                  errs.append("missing or empty generated_on")
+              elif not isinstance(go, str) or not GENERATED_ON_RE.fullmatch(go):
+                  errs.append(f"generated_on must match YYYY-MM-DD, got {go!r}")
+              report(tag, path, errs)
+              return data, mv, go
+
+          map_data, map_mv, map_go = envelope("docs/capability-pack-map.json", "[map-data]", 2)
+          rules_data, rules_mv, rules_go = envelope("docs/classification-rules.json", "[rules-data]", 1)
+
+          if map_mv and rules_mv and map_mv != rules_mv:
+              print(f"::error::[map-data] map_version mismatch: map {map_mv!r} != rules {rules_mv!r}")
+              fails += 1
+          if map_go and rules_go and map_go != rules_go:
+              print(f"::error::[rules-data] generated_on mismatch: map {map_go!r} != rules {rules_go!r}")
+              fails += 1
+
+          packs_root = pathlib.Path("packs")
+
+          # map chapters vs disk; same derivation as check_capability_map.py
+          # (packs by chapters/ dir existence, all files on disk, support-file
+          # rows excluded from the map side)
+          if isinstance(map_data, dict):
+              clusters = map_data.get("clusters")
+              if not isinstance(clusters, list):
+                  report("[map-data]", "docs/capability-pack-map.json", ["missing or non-list clusters"])
+                  clusters = []
+              map_chapters = set()
+              for cluster in clusters:
+                  if not isinstance(cluster, dict):
+                      continue
+                  chapters = cluster.get("chapters")
+                  if not isinstance(chapters, list):
+                      continue
+                  for entry in chapters:
+                      if not isinstance(entry, dict):
+                          continue
+                      pack, chapter = entry.get("pack"), entry.get("chapter")
+                      if not isinstance(pack, str) or not isinstance(chapter, str) or not pack:
+                          continue
+                      if chapter.endswith(SUPPORT_SUFFIX):
+                          continue
+                      map_chapters.add((pack, chapter))
+              on_disk_packs = (
+                  {p.name for p in packs_root.iterdir() if p.is_dir() and (p / "chapters").is_dir()}
+                  if packs_root.is_dir() else set()
+              )
+              disk_chapters = set()
+              for pack_name in sorted(on_disk_packs):
+                  for path in (packs_root / pack_name / "chapters").iterdir():
+                      if path.is_file():
+                          disk_chapters.add((pack_name, path.name))
+              only_disk = sorted(disk_chapters - map_chapters)
+              only_map = sorted(map_chapters - disk_chapters)
+              msgs = [f"chapter-set: on disk not in map: {p}/{c}" for p, c in only_disk[:20]]
+              if len(only_disk) > 20:
+                  msgs.append(f"chapter-set: ... and {len(only_disk) - 20} more on-disk-only")
+              msgs += [f"chapter-set: in map not on disk: {p}/{c}" for p, c in only_map[:20]]
+              if len(only_map) > 20:
+                  msgs.append(f"chapter-set: ... and {len(only_map) - 20} more map-only")
+              report("[map-data]", "docs/capability-pack-map.json", msgs)
+
+          # rules coverage vs disk; same derivation as
+          # check_classification_rules.py (packs/*/chapters/*.md; signpost packs
+          # have no chapters/ dir so the glob is inherently signpost-free;
+          # signpost_packs is read as a set for exclusion only, and its exact
+          # value fidelity stays a local-only guarantee)
+          if isinstance(rules_data, dict):
+              assignments = rules_data.get("assignments")
+              if not isinstance(assignments, list):
+                  report("[rules-data]", "docs/classification-rules.json", ["missing or non-list assignments"])
+                  assignments = []
+              sp = rules_data.get("signpost_packs")
+              signpost_set = {s for s in sp if isinstance(s, str)} if isinstance(sp, list) else set()
+              non_support = set()
+              msgs = []
+              for entry in assignments:
+                  if not isinstance(entry, dict):
+                      continue
+                  pack, chapter, is_support = entry.get("pack"), entry.get("chapter"), entry.get("is_support")
+                  if is_support is not False:
+                      continue  # support rows skipped; support policy stays local
+                  if not isinstance(pack, str) or not pack or not isinstance(chapter, str) or not chapter:
+                      continue
+                  non_support.add((pack, chapter))
+                  if pack in signpost_set:
+                      msgs.append(f"signpost: assignment for signpost pack {pack!r} ({chapter})")
+                  if not (packs_root / pack / "chapters" / chapter).is_file():
+                      msgs.append(f"coverage: assignment has no on-disk chapter: packs/{pack}/chapters/{chapter}")
+              for path in packs_root.glob("*/chapters/*.md"):
+                  if (path.parent.parent.name, path.name) not in non_support:
+                      msgs.append(f"coverage: on-disk chapter has no assignment: {path.parent.parent.name}/{path.name}")
+              report("[rules-data]", "docs/classification-rules.json", msgs)
+
+          if not fails:
+              print("[map-data]/[rules-data] data invariants OK")
+          sys.exit(1 if fails else 0)
+          PY
