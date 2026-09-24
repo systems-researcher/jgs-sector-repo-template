@@ -3,7 +3,7 @@ Copyright (c) 2026 JG Systems Consulting Ltd. - MIT License (see LICENSE).
 SPDX-License-Identifier: MIT
 -->
 
-<h1 align="center">jgs-sector-repo-template</h1>
+<h1 align="center">__REPO_NAME__</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT%20(tooling)-blue" alt="License: MIT (tooling)">
@@ -13,7 +13,8 @@ SPDX-License-Identifier: MIT
 
 <p align="center">
   <strong>Starting point for a sector knowledge-pack catalogue. This repository is a
-  TEMPLATE: it is not installed as packs. Mint your own sector repo from it.</strong>
+  TEMPLATE: it is not installed as packs. Mint your own sector repo from it.
+  (Minted repos: replace this section with your catalogue introduction.)</strong>
 </p>
 
 **Copyright (c) 2026 JG Systems Consulting Ltd. - MIT License (tooling); pack content under each source's own licence (see [NOTICE](NOTICE)).**
