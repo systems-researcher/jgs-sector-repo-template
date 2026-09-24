@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "repository": "__REPO_NAME__",
+  "sector_slug": "__SECTOR_SLUG__",
+  "scope": "__SECTOR_NAME__",
+  "version": "0.1.0",
+  "updated": "2026-09-24",
+  "packs": [],
+  "planned": []
+}

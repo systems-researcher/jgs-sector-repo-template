@@ -1,0 +1,12 @@
+{
+  "name": "__SECTOR_NAME__",
+  "description": "JG Systems Consulting catalogue of licence-vetted __SECTOR_NAME__ knowledge-pack skills for coding agents.",
+  "owner": { "name": "JG Systems Consulting Ltd.", "url": "https://github.com/jgsystemsconsulting/__REPO_NAME__" },
+  "plugins": [
+    {
+      "name": "__SECTOR_SLUG__",
+      "source": "./",
+      "description": "Installable __SECTOR_NAME__ knowledge packs reconstructed from open sources."
+    }
+  ]
+}
