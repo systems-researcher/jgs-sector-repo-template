@@ -100,6 +100,8 @@ record the required capture in the pack:
 | **EASA documents** | Per-document reuse confirmation before packaging |
 | **UK DEF-STAN** | Per-document licence statement before packaging |
 
+For industry families in this table, the per-document capture rule (including the OGL source-acknowledgement link inside the pack) overrides the general link policy for those sources.
+
 ## Blocking checklists
 
 - **UNECE R155 / R156**: availability re-verification is required before any automotive

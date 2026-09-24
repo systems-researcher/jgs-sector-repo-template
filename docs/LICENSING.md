@@ -21,15 +21,15 @@ A knowledge pack has two separable layers, licensed independently:
 | **Pack content** | The reconstructed reference notes inside `packs/<slug>/` | **The upstream source's own licence** (see each `packs/<slug>/LICENSE` and the root `NOTICE`) |
 
 The machinery is permissively licensed; the *knowledge* keeps whatever obligations its
-open source attached. A CC BY-NC-SA source (e.g. SEBoK) yields a CC BY-NC-SA pack:
+open source attached. A CC BY-NC-SA source yields a CC BY-NC-SA pack:
 non-commercial, attribution and share-alike carried forward.
 
 ## 2. We only package sources that permit it
 
 Every pack's source is vetted to **Tier 1 or Tier 2** of [SOURCE-VETTING.md](SOURCE-VETTING.md)
 before any content is produced. Sources that are merely "free to read" but
-all-rights-reserved (ISO/IEC/IEEE standards, SWEBOK, the MITRE SE Guide, the INCOSE SE
-Handbook, TOGAF, PMBOK) are on a hard **Excluded** list and are never packaged. So no
+all-rights-reserved (paywalled ISO/IEC/IEEE-style standards, copyrighted handbooks and
+bodies of knowledge) are on a hard **Excluded** list and are never packaged. So no
 pack can carry restricted text in the first place.
 
 Industry sector packs carry OGL v3 and EU-reuse content under the per-document capture
@@ -42,12 +42,12 @@ Works of the US Government are **not subject to copyright** in the United States
 transform, and redistribute them for any purpose. We add an attribution courtesy line in
 `NOTICE`, but no permission is needed and none is implied to be withheld.
 
-### Tier 2: Open licence (e.g. SEBoK, OMG SysML, MIT OpenCourseWare)
+### Tier 2: Open licence (e.g. Creative Commons works, OMG SysML, MIT OpenCourseWare)
 
 These carry licences that **expressly grant the right to redistribute and to create
 derivative works**:
 
-- **Creative Commons BY-NC-SA** (SEBoK, MIT OCW): the licence grants the rights to
+- **Creative Commons BY-NC-SA** (e.g. MIT OCW): the licence grants the rights to
   *"Share: copy and redistribute"* and *"Adapt: remix, transform, and build upon the
   material."* Reconstituting the source into reference notes is precisely an exercise of
   the **Adapt** right. We satisfy every condition: **BY** (we attribute the creator),
