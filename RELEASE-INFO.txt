@@ -1,0 +1,7 @@
+__REPO_NAME__ — Release
+Product:    __REPO_NAME__
+Version:    0.1.0
+Tag:        v0.1.0
+Staged:     2026-09-24T00:00:00Z
+Vendor:     JG Systems Consulting Ltd.
+Licence:    MIT (tooling); pack content under each source's own licence (see NOTICE)

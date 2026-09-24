@@ -1,0 +1,38 @@
+NOTICE
+======
+
+__REPO_NAME__
+Copyright (c) 2026 JG Systems Consulting Ltd.
+
+This product contains two separately licensed layers:
+
+1. TOOLING & SCAFFOLDING (MIT License, JG Systems Consulting Ltd.)
+   Everything outside packs/<slug>/: tooling/, docs/, installers, CI, repo structure.
+
+2. PACK CONTENT (each content pack under its upstream open source's own licence)
+   The reconstructed reference notes inside each content pack's packs/<slug>/ directory
+   are derived from openly-licensed or public-domain sources and carry that source's
+   licence. Attribution is provided textually below and in each packs/<slug>/LICENSE; no
+   source-material download links are published (see docs/LICENSING.md).
+
+-----------------------------------------------------------------------------------
+Third-party source attributions (one block per shipped content pack)
+-----------------------------------------------------------------------------------
+
+<!-- TEMPLATE PLACEHOLDER: the template ships no pack content. When a pack is ported
+     or created, append one attribution block here in the exemplar format:
+
+[pack: <slug>]
+  Source : <full source title, version, and identifier>
+  Author : <publishing organisation>
+  Licence: <licence name and URL, or public-domain basis>
+  Changes: <how the pack relates to the source>
+  Terms  : <binding conditions and caveats, ending with a pointer to
+            packs/<slug>/LICENSE>
+-->
+
+-----------------------------------------------------------------------------------
+The build pipeline uses the jgs-reference-skill extraction engine (MIT License,
+© JG Systems Consulting Ltd; a fork of book-to-skill, © the book-to-skill authors).
+It is a build tool, not a packaged source.
+-----------------------------------------------------------------------------------

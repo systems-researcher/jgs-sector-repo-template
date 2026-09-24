@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "__SECTOR_NAME__ Knowledge Packs"
+version: 0.1.0
+date-released: 2026-09-24
+url: "https://github.com/jgsystemsconsulting/__REPO_NAME__"
+repository-code: "https://github.com/jgsystemsconsulting/__REPO_NAME__"
+license: MIT
+type: software
+keywords:
+  - __SECTOR_SLUG__
+authors:
+  - name: "JG Systems Consulting Ltd"
+    website: "https://www.jgsystemsconsulting.com"

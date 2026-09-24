@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.ruff_cache/
+.pytest_cache/
+venv/
+
+# Pack build staging (raw extracted source text must never be committed —
+# it can be large and may carry the source's own licence on every page)
+**/.build/
+*.full_text.txt
+
+# Staged SOURCE material for the backlog build (PDFs/HTML downloaded for synthesis).
+# These are build INPUTS only — never redistribute/commit them (see docs/SOURCE-VETTING.md).
+sources/*
+!sources/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Git worktrees (isolated workspaces; never tracked)
+.worktrees/
+
+# Playwright MCP visual-QA artifacts (RR-B-24 evidence — listed in the PR, not committed)
+.playwright-mcp/
+
+# Cross-repo handoff note — describes work for OTHER repos, not a deliverable here (kept local)
+docs/RELEASE-STANDARD-REPO-PLAN.md
+
+# GSD planning / agent workflow state — how the work gets done, not the product.
+# Keep local for GSD; never ship in clones or release archives.
+.planning/
+
+# Interview-prep artifacts (not part of the knowledge-packs product; kept local)
+System_Retirement_SE_Interview*.pptx
+build_retirement_pptx.js
+
+# graphify scratch + volatile build state
+graphify-out/
+.planning/graphs/.rebuild.lock
+.planning/graphs/.last-build-status.json
+.planning/graphs/.last-build-snapshot.json
+
+# maintainer-only planning artifacts (RR-B-35)
+docs/superpowers/
+
+# ZCode session state: context checkpoints, distribution working tracker, submission
+# drafts. Maintainer-only working state, never part of the product (RR-B-35, RR-B-37).
+.zcode/
