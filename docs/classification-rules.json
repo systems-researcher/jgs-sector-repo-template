@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "map_version": "0.1.0",
+  "generated_on": "2026-09-24",
+  "rules_of_construction": [
+    "Every chapter in every pack under packs/<slug>/chapters/ is assigned to exactly one capability cluster (best fit).",
+    "Cross-cutting chapters carry a remark noting the strong secondary fit.",
+    "glossary.md / patterns.md / cheatsheet.md may appear as support-file rows; is_support assignment rows are the membership source of truth.",
+    "Signpost packs contain no chapters and are not mapped.",
+    "A standard's own process definitions go to the process cluster; performing the capability goes to the capability cluster."
+  ],
+  "signpost_packs": [],
+  "support_filenames": [
+    "glossary.md",
+    "patterns.md",
+    "cheatsheet.md"
+  ],
+  "support_policy": "Support-file membership is encoded per assignment in `assignments` (`is_support` true rows); this field is descriptive and not a derivation rule.",
+  "cluster_names": [],
+  "assignments": []
+}

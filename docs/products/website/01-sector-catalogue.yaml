@@ -1,0 +1,55 @@
+# Copyright (c) 2026 JG Systems Consulting Ltd. MIT License (see ../../../LICENSE).
+# SPDX-License-Identifier: MIT
+#
+# RR-B-19 marketing-content entry: AI-ingestible product YAML for the public website.
+# Features / positioning only. NO pricing.
+
+slug: __REPO_NAME__
+name: __SECTOR_NAME__ Knowledge Packs
+tagline: >
+  Installable knowledge-pack skills for coding agents, reconstructed from genuinely
+  open __SECTOR_NAME__ bodies of knowledge, vetted, attributed, and shareable by
+  construction.
+product_class: agent-skills
+status: live
+version: "0.1.0"
+repository: https://github.com/jgsystemsconsulting/__REPO_NAME__
+license: MIT (tooling); pack content under each source's own licence
+vendor: JG Systems Consulting Ltd.
+
+positioning: >
+  A knowledge pack turns a body of knowledge into a skill a coding agent loads on demand.
+  This is a curated catalogue of those packs for __SECTOR_NAME__, built so only genuinely
+  open sources go in. Eligibility is enforced, not assumed, and every pack is
+  redistributable by construction.
+
+audience:
+  - Practitioners working in __SECTOR_NAME__
+  - Anyone using a coding agent who needs grounded __SECTOR_NAME__ reference answers
+
+features:
+  - title: Licence-vetted by construction
+    detail: >
+      Every source clears a written eligibility rubric; each pack carries its source's
+      licence and attribution.
+  - title: Progressive disclosure
+    detail: >
+      Each pack is an always-loaded SKILL.md index plus on-demand chapters, so a large
+      body of knowledge never fills the context window.
+  - title: /__SECTOR_ORCH__ orchestrator
+    detail: >
+      An explicit /__SECTOR_ORCH__ <question> entry point for when you do not know which
+      pack to ask. Routes through a curated topic map to the right packs. Carries no
+      source content itself.
+  - title: Open Agent Skills format, multi-agent install
+    detail: >
+      Packs follow the open agentskills.io SKILL.md standard. One stdlib-only installer
+      targets multiple coding agents.
+  - title: No runtime dependencies
+    detail: >
+      Plain Markdown. No MCP server, API key, or licence tier needed at runtime.
+
+links:
+  repository: https://github.com/jgsystemsconsulting/__REPO_NAME__
+  changelog: https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/CHANGELOG.md
+  skills_index: https://github.com/jgsystemsconsulting/__REPO_NAME__/blob/main/SKILLS.md

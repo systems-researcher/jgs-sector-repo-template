@@ -1,0 +1,18 @@
+# Copyright (c) 2026 JG Systems Consulting Ltd. MIT License (see ../../../LICENSE).
+# SPDX-License-Identifier: MIT
+#
+# RR-B-19 product catalogue: the source the public website is generated from
+# (see the refresh-website-content skill). One entry per product YAML in this dir.
+# Features / positioning only. NO pricing.
+
+products:
+  - slug: __REPO_NAME__
+    name: __SECTOR_NAME__ Knowledge Packs
+    product_class: agent-skills
+    status: live
+    version: "0.1.0"
+    entry: 01-sector-catalogue.yaml
+    tagline: >
+      Licence-vetted __SECTOR_NAME__ knowledge-pack skills for coding agents,
+      reconstructed from genuinely open sources.
+    repository: https://github.com/jgsystemsconsulting/__REPO_NAME__
