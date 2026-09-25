@@ -192,7 +192,6 @@ footer .label{{display:block;margin-bottom:8px}}
 </div></div>
 
 <header class="hd"><div class="wrap">
-  <span class="label">JG Systems Consulting Ltd. · Pack reference</span>
   <h1>The full catalogue, {n_content} skills</h1>
   <p>Every knowledge pack in the release, with its source licence and what it covers. Each pack
   is an Agent Skill you invoke by its slug. Type to filter by name, publisher, licence, or topic.
@@ -215,7 +214,6 @@ footer .label{{display:block;margin-bottom:8px}}
 </div></section>
 
 <footer><div class="wrap">
-  <span class="label">JG Systems Consulting Ltd. · 2026</span>
   <p style="margin:0;font-size:0.9rem">
     <a href="index.html">Overview</a> ·
     <a href="{REPO}">Repository</a> ·
