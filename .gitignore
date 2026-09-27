@@ -53,3 +53,4 @@ docs/superpowers/
 # ZCode session state: context checkpoints, distribution working tracker, submission
 # drafts. Maintainer-only working state, never part of the product (RR-B-35, RR-B-37).
 .zcode/
+.superpowers/
